@@ -240,6 +240,12 @@ let ForInStatement,
   BlockStatement
 
 export const baseGenerator = {
+  handle(statement, state) {
+    if (!this[statement.type]) {
+      throw new Error(`Not implemented ${statement.type}`);
+    }
+    this.handle(statement, state);
+  },
   Program(node, state) {
     const indent = state.indent.repeat(state.indentLevel)
     const { lineEnd, writeComments } = state
@@ -254,7 +260,7 @@ export const baseGenerator = {
         formatComments(state, statement.comments, indent, lineEnd)
       }
       state.write(indent)
-      this[statement.type](statement, state)
+      this.handle(statement, state)
       state.write(lineEnd)
     }
     if (writeComments && node.trailingComments != null) {
@@ -279,7 +285,7 @@ export const baseGenerator = {
           formatComments(state, statement.comments, statementIndent, lineEnd)
         }
         state.write(statementIndent)
-        this[statement.type](statement, state)
+        this.handle(statement, state)
         state.write(lineEnd)
       }
       state.write(indent)
@@ -308,33 +314,33 @@ export const baseGenerator = {
     ) {
       // Should always have parentheses or is an AssignmentExpression to an ObjectPattern
       state.write('(')
-      this[node.expression.type](node.expression, state)
+      this.handle(node.expression, state)
       state.write(')')
     } else {
-      this[node.expression.type](node.expression, state)
+      this.handle(node.expression, state)
     }
     state.write(';')
   },
   IfStatement(node, state) {
     state.write('if (')
-    this[node.test.type](node.test, state)
+    this.handle(node.test, state)
     state.write(') ')
-    this[node.consequent.type](node.consequent, state)
+    this.handle(node.consequent, state)
     if (node.alternate != null) {
       state.write(' else ')
-      this[node.alternate.type](node.alternate, state)
+      this.handle(node.alternate, state)
     }
   },
   LabeledStatement(node, state) {
-    this[node.label.type](node.label, state)
+    this.handle(node.label, state)
     state.write(': ')
-    this[node.body.type](node.body, state)
+    this.handle(node.body, state)
   },
   BreakStatement(node, state) {
     state.write('break')
     if (node.label != null) {
       state.write(' ')
-      this[node.label.type](node.label, state)
+      this.handle(node.label, state)
     }
     state.write(';')
   },
@@ -342,15 +348,15 @@ export const baseGenerator = {
     state.write('continue')
     if (node.label != null) {
       state.write(' ')
-      this[node.label.type](node.label, state)
+      this.handle(node.label, state)
     }
     state.write(';')
   },
   WithStatement(node, state) {
     state.write('with (')
-    this[node.object.type](node.object, state)
+    this.handle(node.object, state)
     state.write(') ')
-    this[node.body.type](node.body, state)
+    this.handle(node.body, state)
   },
   SwitchStatement(node, state) {
     const indent = state.indent.repeat(state.indentLevel++)
@@ -359,7 +365,7 @@ export const baseGenerator = {
     const caseIndent = indent + state.indent
     const statementIndent = caseIndent + state.indent
     state.write('switch (')
-    this[node.discriminant.type](node.discriminant, state)
+    this.handle(node.discriminant, state)
     state.write(') {' + lineEnd)
     const { cases: occurences } = node
     const { length: occurencesCount } = occurences
@@ -370,7 +376,7 @@ export const baseGenerator = {
       }
       if (occurence.test) {
         state.write(caseIndent + 'case ')
-        this[occurence.test.type](occurence.test, state)
+        this.handle(occurence.test, state)
         state.write(':' + lineEnd)
       } else {
         state.write(caseIndent + 'default:' + lineEnd)
@@ -383,7 +389,7 @@ export const baseGenerator = {
           formatComments(state, statement.comments, statementIndent, lineEnd)
         }
         state.write(statementIndent)
-        this[statement.type](statement, state)
+        this.handle(statement, state)
         state.write(lineEnd)
       }
     }
@@ -394,45 +400,45 @@ export const baseGenerator = {
     state.write('return')
     if (node.argument) {
       state.write(' ')
-      this[node.argument.type](node.argument, state)
+      this.handle(node.argument, state)
     }
     state.write(';')
   },
   ThrowStatement(node, state) {
     state.write('throw ')
-    this[node.argument.type](node.argument, state)
+    this.handle(node.argument, state)
     state.write(';')
   },
   TryStatement(node, state) {
     state.write('try ')
-    this[node.block.type](node.block, state)
+    this.handle(node.block, state)
     if (node.handler) {
       const { handler } = node
       if (handler.param == null) {
         state.write(' catch ')
       } else {
         state.write(' catch (')
-        this[handler.param.type](handler.param, state)
+        this.handle(handler.param, state)
         state.write(') ')
       }
-      this[handler.body.type](handler.body, state)
+      this.handle(handler.body, state)
     }
     if (node.finalizer) {
       state.write(' finally ')
-      this[node.finalizer.type](node.finalizer, state)
+      this.handle(node.finalizer, state)
     }
   },
   WhileStatement(node, state) {
     state.write('while (')
-    this[node.test.type](node.test, state)
+    this.handle(node.test, state)
     state.write(') ')
-    this[node.body.type](node.body, state)
+    this.handle(node.body, state)
   },
   DoWhileStatement(node, state) {
     state.write('do ')
-    this[node.body.type](node.body, state)
+    this.handle(node.body, state)
     state.write(' while (')
-    this[node.test.type](node.test, state)
+    this.handle(node.test, state)
     state.write(');')
   },
   ForStatement(node, state) {
@@ -442,19 +448,19 @@ export const baseGenerator = {
       if (init.type[0] === 'V') {
         formatVariableDeclaration(state, init)
       } else {
-        this[init.type](init, state)
+        this.handle(init, state)
       }
     }
     state.write('; ')
     if (node.test) {
-      this[node.test.type](node.test, state)
+      this.handle(node.test, state)
     }
     state.write('; ')
     if (node.update) {
-      this[node.update.type](node.update, state)
+      this.handle(node.update, state)
     }
     state.write(') ')
-    this[node.body.type](node.body, state)
+    this.handle(node.body, state)
   },
   ForInStatement: (ForInStatement = function(node, state) {
     state.write(`for ${node.await ? 'await ' : ''}(`)
@@ -462,13 +468,13 @@ export const baseGenerator = {
     if (left.type[0] === 'V') {
       formatVariableDeclaration(state, left)
     } else {
-      this[left.type](left, state)
+      this.handle(left, state)
     }
     // Identifying whether node.type is `ForInStatement` or `ForOfStatement`
     state.write(node.type[3] === 'I' ? ' in ' : ' of ')
-    this[node.right.type](node.right, state)
+    this.handle(node.right, state)
     state.write(') ')
-    this[node.body.type](node.body, state)
+    this.handle(node.body, state)
   }),
   ForOfStatement: ForInStatement,
   DebuggerStatement(node, state) {
@@ -483,7 +489,7 @@ export const baseGenerator = {
     )
     formatSequence(state, node.params)
     state.write(' ')
-    this[node.body.type](node.body, state)
+    this.handle(node.body, state)
   }),
   FunctionExpression: FunctionDeclaration,
   VariableDeclaration(node, state) {
@@ -491,17 +497,17 @@ export const baseGenerator = {
     state.write(';')
   },
   VariableDeclarator(node, state) {
-    this[node.id.type](node.id, state)
+    this.handle(node.id, state)
     if (node.init != null) {
       state.write(' = ')
-      this[node.init.type](node.init, state)
+      this.handle(node.init, state)
     }
   },
   ClassDeclaration(node, state) {
     state.write('class ' + (node.id ? `${node.id.name} ` : ''), node)
     if (node.superClass) {
       state.write('extends ')
-      this[node.superClass.type](node.superClass, state)
+      this.handle(node.superClass, state)
       state.write(' ')
     }
     this.ClassBody(node.body, state)
@@ -557,7 +563,7 @@ export const baseGenerator = {
   },
   ExportDefaultDeclaration(node, state) {
     state.write('export default ')
-    this[node.declaration.type](node.declaration, state)
+    this.handle(node.declaration, state)
     if (
       EXPRESSIONS_PRECEDENCE[node.declaration.type] &&
       node.declaration.type[0] !== 'F'
@@ -569,7 +575,7 @@ export const baseGenerator = {
   ExportNamedDeclaration(node, state) {
     state.write('export ')
     if (node.declaration) {
-      this[node.declaration.type](node.declaration, state)
+      this.handle(node.declaration, state)
     } else {
       state.write('{')
       const { specifiers } = node,
@@ -619,14 +625,14 @@ export const baseGenerator = {
     }
     if (node.computed) {
       state.write('[')
-      this[node.key.type](node.key, state)
+      this.handle(node.key, state)
       state.write(']')
     } else {
-      this[node.key.type](node.key, state)
+      this.handle(node.key, state)
     }
     formatSequence(state, node.value.params)
     state.write(' ')
-    this[node.value.body.type](node.value.body, state)
+    this.handle(node.value.body, state)
   },
   ClassExpression(node, state) {
     this.ClassDeclaration(node, state)
@@ -650,7 +656,7 @@ export const baseGenerator = {
       this.ObjectExpression(node.body, state)
       state.write(')')
     } else {
-      this[node.body.type](node.body, state)
+      this.handle(node.body, state)
     }
   },
   ThisExpression(node, state) {
@@ -661,20 +667,20 @@ export const baseGenerator = {
   },
   RestElement: (RestElement = function(node, state) {
     state.write('...')
-    this[node.argument.type](node.argument, state)
+    this.handle(node.argument, state)
   }),
   SpreadElement: RestElement,
   YieldExpression(node, state) {
     state.write(node.delegate ? 'yield*' : 'yield')
     if (node.argument) {
       state.write(' ')
-      this[node.argument.type](node.argument, state)
+      this.handle(node.argument, state)
     }
   },
   AwaitExpression(node, state) {
     state.write('await ')
     if (node.argument) {
-      this[node.argument.type](node.argument, state)
+      this.handle(node.argument, state)
     }
   },
   TemplateLiteral(node, state) {
@@ -685,15 +691,15 @@ export const baseGenerator = {
       const expression = expressions[i]
       state.write(quasis[i].value.raw)
       state.write('${')
-      this[expression.type](expression, state)
+      this.handle(expression, state)
       state.write('}')
     }
     state.write(quasis[quasis.length - 1].value.raw)
     state.write('`')
   },
   TaggedTemplateExpression(node, state) {
-    this[node.tag.type](node.tag, state)
-    this[node.quasi.type](node.quasi, state)
+    this.handle(node.tag, state)
+    this.handle(node.quasi, state)
   },
   ArrayExpression: (ArrayExpression = function(node, state) {
     state.write('[')
@@ -703,7 +709,7 @@ export const baseGenerator = {
       for (let i = 0; ; ) {
         const element = elements[i]
         if (element != null) {
-          this[element.type](element, state)
+          this.handle(element, state)
         }
         if (++i < length) {
           state.write(', ')
@@ -737,7 +743,7 @@ export const baseGenerator = {
           formatComments(state, property.comments, propertyIndent, lineEnd)
         }
         state.write(propertyIndent)
-        this[property.type](property, state)
+        this.handle(property, state)
         if (++i < length) {
           state.write(comma)
         } else {
@@ -777,14 +783,14 @@ export const baseGenerator = {
       if (!node.shorthand) {
         if (node.computed) {
           state.write('[')
-          this[node.key.type](node.key, state)
+          this.handle(node.key, state)
           state.write(']')
         } else {
-          this[node.key.type](node.key, state)
+          this.handle(node.key, state)
         }
         state.write(': ')
       }
-      this[node.value.type](node.value, state)
+      this.handle(node.value, state)
     }
   },
   ObjectPattern(node, state) {
@@ -817,14 +823,14 @@ export const baseGenerator = {
         EXPRESSIONS_PRECEDENCE.UnaryExpression
       ) {
         state.write('(')
-        this[node.argument.type](node.argument, state)
+        this.handle(node.argument, state)
         state.write(')')
       } else {
-        this[node.argument.type](node.argument, state)
+        this.handle(node.argument, state)
       }
     } else {
       // FIXME: This case never occurs
-      this[node.argument.type](node.argument, state)
+      this.handle(node.argument, state)
       state.write(node.operator)
     }
   },
@@ -832,21 +838,21 @@ export const baseGenerator = {
     // Always applied to identifiers or members, no parenthesis check needed
     if (node.prefix) {
       state.write(node.operator)
-      this[node.argument.type](node.argument, state)
+      this.handle(node.argument, state)
     } else {
-      this[node.argument.type](node.argument, state)
+      this.handle(node.argument, state)
       state.write(node.operator)
     }
   },
   AssignmentExpression(node, state) {
-    this[node.left.type](node.left, state)
+    this.handle(node.left, state)
     state.write(' ' + node.operator + ' ')
-    this[node.right.type](node.right, state)
+    this.handle(node.right, state)
   },
   AssignmentPattern(node, state) {
-    this[node.left.type](node.left, state)
+    this.handle(node.left, state)
     state.write(' = ')
-    this[node.right.type](node.right, state)
+    this.handle(node.right, state)
   },
   BinaryExpression: (BinaryExpression = function(node, state) {
     const isIn = node.operator === 'in'
@@ -867,16 +873,16 @@ export const baseGenerator = {
       EXPRESSIONS_PRECEDENCE[node.test.type] >
       EXPRESSIONS_PRECEDENCE.ConditionalExpression
     ) {
-      this[node.test.type](node.test, state)
+      this.handle(node.test, state)
     } else {
       state.write('(')
-      this[node.test.type](node.test, state)
+      this.handle(node.test, state)
       state.write(')')
     }
     state.write(' ? ')
-    this[node.consequent.type](node.consequent, state)
+    this.handle(node.consequent, state)
     state.write(' : ')
-    this[node.alternate.type](node.alternate, state)
+    this.handle(node.alternate, state)
   },
   NewExpression(node, state) {
     state.write('new ')
@@ -886,10 +892,10 @@ export const baseGenerator = {
       hasCallExpression(node.callee)
     ) {
       state.write('(')
-      this[node.callee.type](node.callee, state)
+      this.handle(node.callee, state)
       state.write(')')
     } else {
-      this[node.callee.type](node.callee, state)
+      this.handle(node.callee, state)
     }
     formatSequence(state, node['arguments'])
   },
@@ -899,10 +905,10 @@ export const baseGenerator = {
       EXPRESSIONS_PRECEDENCE.CallExpression
     ) {
       state.write('(')
-      this[node.callee.type](node.callee, state)
+      this.handle(node.callee, state)
       state.write(')')
     } else {
-      this[node.callee.type](node.callee, state)
+      this.handle(node.callee, state)
     }
     formatSequence(state, node['arguments'])
   },
@@ -912,18 +918,18 @@ export const baseGenerator = {
       EXPRESSIONS_PRECEDENCE.MemberExpression
     ) {
       state.write('(')
-      this[node.object.type](node.object, state)
+      this.handle(node.object, state)
       state.write(')')
     } else {
-      this[node.object.type](node.object, state)
+      this.handle(node.object, state)
     }
     if (node.computed) {
       state.write('[')
-      this[node.property.type](node.property, state)
+      this.handle(node.property, state)
       state.write(']')
     } else {
       state.write('.')
-      this[node.property.type](node.property, state)
+      this.handle(node.property, state)
     }
   },
   MetaProperty(node, state) {
