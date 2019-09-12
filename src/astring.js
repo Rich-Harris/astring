@@ -644,7 +644,7 @@ export const baseGenerator = {
       // Omit parenthesis if only one named parameter
       if (params.length === 1 && params[0].type[0] === 'I') {
         // If params[0].type[0] starts with 'I', it can't be `ImportDeclaration` nor `IfStatement` and thus is `Identifier`
-        state.write(params[0].name, params[0])
+        this.handle(params[0], state)
       } else {
         formatSequence(state, node.params)
       }
