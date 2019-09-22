@@ -985,7 +985,7 @@ class State {
         original: null,
         generated: this,
         name: undefined,
-        source: setup.sourceMap.file || setup.sourceMap._file,
+        source: setup.sourceMapSource
       }
     }
   }
@@ -1013,7 +1013,14 @@ class State {
       const { mapping } = this
       mapping.original = node.loc.start
       mapping.name = node.name
-      this.sourceMap.addMapping(mapping)
+      this.sourceMap.addMapping({
+        generated: {
+          line: mapping.generated.line,
+          column: mapping.generated.column
+        },
+        original: mapping.original,
+        source: mapping.source
+      })
     }
     if (code.length > 0) {
       if (this.lineEndSize > 0) {
